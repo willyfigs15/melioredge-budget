@@ -1,7 +1,7 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { createContext, Suspense, useContext, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { api, DASHBOARD_URL } from "@/lib/api";
 import type { User } from "@/types";
 
@@ -19,17 +19,13 @@ const AuthContext = createContext<AuthState>({
 
 export const useAuth = () => useContext(AuthContext);
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const router = useRouter();
-  const pathname = usePathname();
+function AuthProviderInner({ children }: { children: React.ReactNode }) {
   const searchParams = useSearchParams();
   const [user, setUser] = useState<User | null>(null);
   const [isReady, setReady] = useState(false);
 
   useEffect(() => {
     const init = async () => {
-      // Dashboard redirects with `?token=<jwt>` — keep `handoff` as a fallback
-      // so direct curl/test links keep working.
       const handoff = searchParams?.get("token") ?? searchParams?.get("handoff");
 
       if (handoff) {
@@ -72,5 +68,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     <AuthContext.Provider value={{ user, isReady, logout }}>
       {children}
     </AuthContext.Provider>
+  );
+}
+
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-background" />}>
+      <AuthProviderInner>{children}</AuthProviderInner>
+    </Suspense>
   );
 }
