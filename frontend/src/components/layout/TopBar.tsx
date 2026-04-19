@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { LogOut, LayoutGrid } from "lucide-react";
 import { useAuth } from "@/components/AuthProvider";
 import { DASHBOARD_URL } from "@/lib/api";
@@ -11,9 +12,23 @@ export function TopBar() {
     <header className="sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur">
       <div className="max-w-5xl mx-auto px-4 md:px-8 h-14 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2 font-semibold">
-          <span className="inline-block h-6 w-6 rounded bg-primary/20 text-primary flex items-center justify-center text-xs font-bold">M</span>
-          <span className="hidden sm:inline">MeliorEdge Budget</span>
-          <span className="sm:hidden">Budget</span>
+          <Image
+            src="/brand/melioredge-logo-dark.svg"
+            alt="MeliorEdge"
+            width={28}
+            height={28}
+            className="shrink-0 rounded-md"
+            priority
+          />
+          <span className="hidden sm:inline">
+            <span className="text-foreground">Melior</span>
+            <span className="text-primary">Edge</span>
+            <span className="text-muted-foreground font-normal"> · Budget</span>
+          </span>
+          <span className="sm:hidden">
+            <span className="text-foreground">Melior</span>
+            <span className="text-primary">Edge</span>
+          </span>
         </Link>
         <div className="flex items-center gap-3">
           <a
