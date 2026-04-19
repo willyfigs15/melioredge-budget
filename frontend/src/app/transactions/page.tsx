@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, Plus, Trash2 } from "lucide-react";
 import { api } from "@/lib/api";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
@@ -65,16 +65,22 @@ export default function TransactionsPage() {
         <ul className="space-y-2">
           {items.map((t) => {
             const cat = t.category_id ? catMap.get(t.category_id) : null;
-            const sign = t.type === "income" ? "+" : "-";
+            const isIncome = t.type === "income";
+            const sign = isIncome ? "+" : "-";
+            const TypeIcon = isIncome ? ArrowUpRight : ArrowDownRight;
             return (
               <li key={t.id}>
                 <Card>
                   <CardBody className="py-3 flex items-center gap-3">
                     <span
-                      className="h-8 w-8 rounded-full flex items-center justify-center text-xs font-semibold shrink-0"
-                      style={{ background: cat?.color ?? "hsl(var(--secondary))" }}
+                      className={`h-8 w-8 rounded-full flex items-center justify-center shrink-0 ring-1 ${
+                        isIncome
+                          ? "bg-primary/15 text-primary ring-primary/30"
+                          : "bg-destructive/15 text-destructive-foreground ring-destructive/40"
+                      }`}
+                      aria-label={isIncome ? "Income" : "Expense"}
                     >
-                      {(cat?.name ?? "·").slice(0, 1).toUpperCase()}
+                      <TypeIcon className="h-4 w-4" />
                     </span>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate">
