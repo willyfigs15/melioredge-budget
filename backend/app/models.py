@@ -25,6 +25,7 @@ class User(Base):
 
     budgets = relationship("Budget", back_populates="user", cascade="all, delete-orphan")
     transactions = relationship("Transaction", back_populates="user", cascade="all, delete-orphan")
+    recurring = relationship("RecurringTransaction", back_populates="user", cascade="all, delete-orphan")
 
 
 class Budget(Base):
@@ -101,3 +102,26 @@ class Import(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     transactions = relationship("Transaction", back_populates="import_")
+
+
+class RecurringTransaction(Base):
+    """Template for transactions that repeat every month.
+
+    Applied via POST /api/recurring/apply/{year}/{month} — creates real
+    Transaction rows for the target month (skipping dupes).
+    """
+    __tablename__ = "recurring_transactions"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    category_id = Column(Integer, ForeignKey("categories.id", ondelete="SET NULL"), nullable=True)
+    day_of_month = Column(Integer, nullable=False)      # 1–31
+    amount = Column(Numeric(12, 2), nullable=False)
+    description = Column(String, default="")
+    type = Column(String, nullable=False)               # income | expense
+    active = Column(Boolean, default=True, nullable=False)
+    note = Column(String, default="")
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    user = relationship("User", back_populates="recurring")
