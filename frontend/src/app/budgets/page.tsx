@@ -115,14 +115,17 @@ export default function BudgetsPage() {
 
 function CreateBudgetDialog({ open, onClose, onCreated }: { open: boolean; onClose: () => void; onCreated: (b: Budget) => void }) {
   const { year, month } = nowPeriod();
-  const [form, setForm] = useState({ year, month, name: "" });
+  const [form, setForm] = useState({ year, month, name: "", projected_income: "" });
   const [busy, setBusy] = useState(false);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setBusy(true);
     try {
-      const { data } = await api.post<Budget>("/api/budgets", form);
+      const { data } = await api.post<Budget>("/api/budgets", {
+        ...form,
+        projected_income: form.projected_income || "0",
+      });
       onCreated(data);
       onClose();
     } catch (e: any) {
@@ -146,6 +149,17 @@ function CreateBudgetDialog({ open, onClose, onCreated }: { open: boolean; onClo
         <div className="col-span-2">
           <Label>Name (optional)</Label>
           <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="April 2026" />
+        </div>
+        <div className="col-span-2">
+          <Label>Projected income (optional)</Label>
+          <Input
+            type="number"
+            step="0.01"
+            min="0"
+            value={form.projected_income}
+            onChange={(e) => setForm({ ...form, projected_income: e.target.value })}
+            placeholder="0.00"
+          />
         </div>
         <div className="col-span-2 flex justify-end gap-2 pt-2">
           <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>

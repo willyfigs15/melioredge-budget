@@ -1,12 +1,12 @@
 """CSV parsing + import for bank statements.
 
-Strategy:
-- Preview: sniff dialect, return columns + a best-guess field mapping
-  (date, amount, description) + a few sample rows. User can adjust mapping
-  client-side before confirming.
-- Confirm: re-parse with the final mapping and insert rows in one transaction.
-  `type` is inferred from the amount sign: negative = expense, positive = income.
-  Dedup is best-effort via `external_id` (hash of date|amount|description).
+Two flows:
+- Template flow (primary): fixed headers `date,amount,description,type,category`.
+  Strict row-level validation, category name → id resolution, per-row errors.
+- Mapping flow (legacy bank-export path): sniff dialect, pick columns, infer
+  income/expense from amount sign. Kept for raw bank CSVs.
+
+Dedup is best-effort via `external_id` (hash of date|amount|description).
 """
 from __future__ import annotations
 
@@ -165,5 +165,144 @@ def iter_rows(content_b64: str, mapping: dict[str, str]) -> Iterable[ParsedRow]:
 
 
 def external_id(row: ParsedRow) -> str:
+    key = f"{row.date}|{row.amount}|{row.description}".encode()
+    return hashlib.sha1(key).hexdigest()
+
+
+# ─── Template flow ─────────────────────────────────────────────────
+
+TEMPLATE_HEADERS = ["date", "amount", "description", "type", "category"]
+
+TEMPLATE_SAMPLE_ROWS = [
+    ["2026-04-01", "2500.00", "Paycheck", "income", ""],
+    ["2026-04-02", "1200.00", "Rent", "expense", "Housing"],
+    ["2026-04-03", "45.30", "Groceries", "expense", "Food"],
+]
+
+
+@dataclass
+class TemplateRow:
+    date: date
+    amount: Decimal
+    description: str
+    type: str                 # "income" | "expense"
+    category_id: Optional[int]
+
+
+@dataclass
+class RowError:
+    row: int                  # 1-based, counting header as row 1
+    field: str
+    message: str
+
+
+def build_template_csv() -> str:
+    """Return a ready-to-download CSV string with headers + a few example rows."""
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    writer.writerow(TEMPLATE_HEADERS)
+    for row in TEMPLATE_SAMPLE_ROWS:
+        writer.writerow(row)
+    return buf.getvalue()
+
+
+def _normalize_header(h: str) -> str:
+    return (h or "").strip().lower().lstrip("\ufeff")
+
+
+def validate_template(
+    content_b64: str,
+    category_name_to_id: dict[str, int],
+) -> tuple[list[TemplateRow], list[RowError], list[str]]:
+    """Parse a template CSV strictly.
+
+    Returns (valid_rows, errors, header_warnings).
+    A file with missing required headers returns empty rows + a single error
+    at row 1 describing the problem.
+    """
+    text = _decode(content_b64)
+    reader = csv.reader(io.StringIO(text))
+    try:
+        header = next(reader)
+    except StopIteration:
+        return [], [RowError(row=1, field="file", message="File is empty")], []
+
+    normalized = [_normalize_header(h) for h in header]
+    missing = [h for h in ("date", "amount", "description", "type") if h not in normalized]
+    if missing:
+        return [], [RowError(
+            row=1,
+            field="header",
+            message=f"Missing required column(s): {', '.join(missing)}. "
+                    f"Expected headers: {', '.join(TEMPLATE_HEADERS)}",
+        )], []
+
+    idx = {h: normalized.index(h) for h in TEMPLATE_HEADERS if h in normalized}
+    lowered_cats = {k.lower(): v for k, v in category_name_to_id.items()}
+
+    valid: list[TemplateRow] = []
+    errors: list[RowError] = []
+    warnings: list[str] = []
+
+    for i, raw in enumerate(reader, start=2):  # start=2 because header is row 1
+        if not any((c or "").strip() for c in raw):
+            continue  # skip blank lines
+
+        def col(name: str) -> str:
+            j = idx.get(name)
+            if j is None or j >= len(raw):
+                return ""
+            return (raw[j] or "").strip()
+
+        date_str = col("date")
+        amount_str = col("amount")
+        description = col("description")
+        type_str = col("type").lower()
+        category_str = col("category")
+
+        row_errs: list[RowError] = []
+
+        parsed_date = _parse_date(date_str)
+        if parsed_date is None:
+            row_errs.append(RowError(row=i, field="date", message=f"Invalid date '{date_str}' (use YYYY-MM-DD)"))
+
+        parsed_amount = _parse_amount(amount_str)
+        if parsed_amount is None:
+            row_errs.append(RowError(row=i, field="amount", message=f"Invalid amount '{amount_str}'"))
+        elif parsed_amount <= 0:
+            row_errs.append(RowError(row=i, field="amount", message="Amount must be greater than zero"))
+
+        if type_str not in ("income", "expense"):
+            row_errs.append(RowError(row=i, field="type", message=f"Type must be 'income' or 'expense' (got '{type_str}')"))
+
+        if not description:
+            row_errs.append(RowError(row=i, field="description", message="Description is required"))
+
+        category_id: Optional[int] = None
+        if category_str:
+            category_id = lowered_cats.get(category_str.lower())
+            if category_id is None:
+                row_errs.append(RowError(
+                    row=i,
+                    field="category",
+                    message=f"Unknown category '{category_str}'. Create it first or leave blank.",
+                ))
+
+        if row_errs:
+            errors.extend(row_errs)
+            continue
+
+        valid.append(TemplateRow(
+            date=parsed_date,
+            amount=parsed_amount,
+            description=description,
+            type=type_str,
+            category_id=category_id,
+        ))
+
+    return valid, errors, warnings
+
+
+def template_external_id(row: TemplateRow) -> str:
     key = f"{row.date}|{row.amount}|{row.description}".encode()
     return hashlib.sha1(key).hexdigest()

@@ -65,6 +65,7 @@ def create_budget(
         year=payload.year,
         month=payload.month,
         name=payload.name,
+        projected_income=payload.projected_income,
     )
     db.add(budget)
     try:
@@ -95,6 +96,7 @@ def duplicate_budget(
         year=payload.year,
         month=payload.month,
         name=payload.name or source.name,
+        projected_income=source.projected_income,
     )
     db.add(new_budget)
     try:
