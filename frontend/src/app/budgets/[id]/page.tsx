@@ -22,6 +22,7 @@ export default function BudgetDetailPage({ params }: { params: { id: string } })
   const [budget, setBudget] = useState<Budget | null>(null);
   const [catModal, setCatModal] = useState<{ mode: "create" } | { mode: "edit"; cat: Category } | null>(null);
   const [renameOpen, setRenameOpen] = useState(false);
+  const [incomeOpen, setIncomeOpen] = useState(false);
   const [confirmDel, setConfirmDel] = useState<{ kind: "budget" } | { kind: "category"; cat: Category } | null>(null);
 
   const load = async () => {
@@ -43,6 +44,8 @@ export default function BudgetDetailPage({ params }: { params: { id: string } })
   if (!budget) return <p className="py-6 text-sm text-muted-foreground">Loading…</p>;
 
   const total = budget.categories.reduce((s, c) => s + parseFloat(c.limit_amount || "0"), 0);
+  const projected = parseFloat(budget.projected_income || "0");
+  const expectedSavings = projected - total;
 
   return (
     <div className="py-6 space-y-4">
@@ -64,6 +67,33 @@ export default function BudgetDetailPage({ params }: { params: { id: string } })
           Delete
         </Button>
       </div>
+
+      <Card>
+        <CardHeader className="flex items-center justify-between">
+          <CardTitle>Projected income</CardTitle>
+          <Button size="sm" variant="ghost" onClick={() => setIncomeOpen(true)}>
+            <Pencil className="h-4 w-4" /> Edit
+          </Button>
+        </CardHeader>
+        <CardBody>
+          <div className="flex items-baseline justify-between gap-3">
+            <div>
+              <p className="text-2xl font-semibold tabular-nums">{formatCurrency(projected)}</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Your expected take-home for {monthLabel(budget.year, budget.month)}.
+              </p>
+            </div>
+            {projected > 0 && total > 0 && (
+              <div className="text-right">
+                <p className="text-xs text-muted-foreground">Expected savings</p>
+                <p className={`text-lg font-semibold tabular-nums ${expectedSavings >= 0 ? "text-primary" : "text-destructive-foreground"}`}>
+                  {formatCurrency(expectedSavings)}
+                </p>
+              </div>
+            )}
+          </div>
+        </CardBody>
+      </Card>
 
       <Card>
         <CardHeader className="flex items-center justify-between">
@@ -134,6 +164,14 @@ export default function BudgetDetailPage({ params }: { params: { id: string } })
           budget={budget}
           onClose={() => setRenameOpen(false)}
           onSaved={(b) => { setBudget(b); setRenameOpen(false); toast.success("Renamed"); }}
+        />
+      )}
+
+      {incomeOpen && (
+        <ProjectedIncomeDialog
+          budget={budget}
+          onClose={() => setIncomeOpen(false)}
+          onSaved={(b) => { setBudget(b); setIncomeOpen(false); toast.success("Updated"); }}
         />
       )}
 
@@ -234,6 +272,37 @@ function CategoryDialog({
         <div className="col-span-2 flex justify-end gap-2 pt-2">
           <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
           <Button type="submit" disabled={busy}>{busy ? "Saving…" : initial ? "Save" : "Add"}</Button>
+        </div>
+      </form>
+    </Dialog>
+  );
+}
+
+function ProjectedIncomeDialog({ budget, onClose, onSaved }: { budget: Budget; onClose: () => void; onSaved: (b: Budget) => void }) {
+  const [value, setValue] = useState(budget.projected_income || "0");
+  const [busy, setBusy] = useState(false);
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setBusy(true);
+    try {
+      const { data } = await api.patch<Budget>(`/api/budgets/${budget.id}`, { projected_income: value });
+      onSaved(data);
+    } catch (e: any) {
+      toast.error(e?.response?.data?.detail ?? "Could not update.");
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <Dialog open={true} onClose={onClose} title="Projected income" description="Your expected take-home for this month. Used to forecast savings.">
+      <form onSubmit={submit} className="space-y-3">
+        <div>
+          <Label>Amount</Label>
+          <Input type="number" step="0.01" min="0" value={value} autoFocus onChange={(e) => setValue(e.target.value)} placeholder="0.00" />
+        </div>
+        <div className="flex justify-end gap-2">
+          <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
+          <Button type="submit" disabled={busy}>{busy ? "Saving…" : "Save"}</Button>
         </div>
       </form>
     </Dialog>

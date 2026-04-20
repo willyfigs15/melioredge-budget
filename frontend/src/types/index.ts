@@ -16,6 +16,7 @@ export type Budget = {
   year: number;
   month: number;
   name: string;
+  projected_income: string;
   categories: Category[];
   created_at: string;
 };
@@ -50,6 +51,8 @@ export type DashboardSummary = {
   total_income: string;
   total_expense: string;
   balance: string;
+  projected_income: string;
+  projected_vs_actual: string;
   budget_total: string;
   budget_used: string;
   categories: CategorySummary[];
@@ -66,6 +69,29 @@ export type ImportRow = {
   status: string;
   error: string;
   created_at: string;
+};
+
+export type ImportRowError = {
+  row: number;
+  field: string;
+  message: string;
+};
+
+export type ImportTemplatePreviewRow = {
+  date: string;
+  amount: string;
+  description: string;
+  type: TxnType;
+  category_id: number | null;
+  category_name: string | null;
+};
+
+export type ImportTemplateValidateResponse = {
+  filename: string;
+  total_rows: number;
+  valid_rows: number;
+  errors: ImportRowError[];
+  sample: ImportTemplatePreviewRow[];
 };
 
 export type Recurring = {

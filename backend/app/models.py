@@ -39,6 +39,7 @@ class Budget(Base):
     year = Column(Integer, nullable=False)
     month = Column(Integer, nullable=False)          # 1–12
     name = Column(String, default="")
+    projected_income = Column(Numeric(12, 2), nullable=False, default=0)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

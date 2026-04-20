@@ -46,12 +46,14 @@ class BudgetIn(BaseModel):
     year: int = Field(ge=1970, le=2100)
     month: int = Field(ge=1, le=12)
     name: str = ""
+    projected_income: Decimal = Field(default=Decimal("0"), ge=0)
 
 
 class BudgetPatch(BaseModel):
     name: Optional[str] = None
     year: Optional[int] = Field(default=None, ge=1970, le=2100)
     month: Optional[int] = Field(default=None, ge=1, le=12)
+    projected_income: Optional[Decimal] = Field(default=None, ge=0)
 
 
 class BudgetDuplicateRequest(BaseModel):
@@ -68,6 +70,7 @@ class BudgetOut(BaseModel):
     year: int
     month: int
     name: str
+    projected_income: Decimal = Decimal("0")
     categories: list[CategoryOut] = []
     created_at: datetime
 
@@ -140,6 +143,41 @@ class ImportConfirmRequest(BaseModel):
     default_category_id: Optional[int] = None
 
 
+# ─── Template-mode import ──────────────────────────────────────────
+
+class ImportRowError(BaseModel):
+    row: int
+    field: str
+    message: str
+
+
+class ImportTemplatePreviewRow(BaseModel):
+    date: date
+    amount: Decimal
+    description: str
+    type: TxnType
+    category_id: Optional[int] = None
+    category_name: Optional[str] = None
+
+
+class ImportTemplateValidateRequest(BaseModel):
+    filename: str
+    content_b64: str
+
+
+class ImportTemplateValidateResponse(BaseModel):
+    filename: str
+    total_rows: int                                # valid + errored (not blanks)
+    valid_rows: int
+    errors: list[ImportRowError] = []
+    sample: list[ImportTemplatePreviewRow] = []    # first 10 valid rows, for UI
+
+
+class ImportTemplateConfirmRequest(BaseModel):
+    filename: str
+    content_b64: str
+
+
 # ─── Dashboard ─────────────────────────────────────────────────────
 
 class CategorySummary(BaseModel):
@@ -158,6 +196,8 @@ class DashboardSummary(BaseModel):
     total_income: Decimal
     total_expense: Decimal
     balance: Decimal
+    projected_income: Decimal = Decimal("0")
+    projected_vs_actual: Decimal = Decimal("0")    # actual - projected (positive = ahead)
     budget_total: Decimal
     budget_used: Decimal
     categories: list[CategorySummary]

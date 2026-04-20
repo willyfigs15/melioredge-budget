@@ -51,6 +51,42 @@ export default function HomePage() {
             <StatCard label="Health" value={`${summary.health_score}/100`} tone="neutral" />
           </div>
 
+          {parseFloat(summary.projected_income) > 0 && (
+            <Card>
+              <CardBody className="flex flex-wrap items-center justify-between gap-3 py-3">
+                <div className="flex items-center gap-6">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Projected income</p>
+                    <p className="text-sm font-medium tabular-nums">{formatCurrency(summary.projected_income)}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Actual so far</p>
+                    <p className="text-sm font-medium tabular-nums">{formatCurrency(summary.total_income)}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">vs Projected</p>
+                    <p className={`text-sm font-semibold tabular-nums ${parseFloat(summary.projected_vs_actual) >= 0 ? "text-primary" : "text-destructive-foreground"}`}>
+                      {parseFloat(summary.projected_vs_actual) >= 0 ? "+" : ""}
+                      {formatCurrency(summary.projected_vs_actual)}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex-1 min-w-[160px] max-w-xs">
+                  <div className="h-2 w-full rounded-full bg-secondary overflow-hidden">
+                    <div
+                      className="h-full bg-primary transition-all"
+                      style={{
+                        width: `${Math.min(100, parseFloat(summary.projected_income) > 0
+                          ? (parseFloat(summary.total_income) / parseFloat(summary.projected_income)) * 100
+                          : 0)}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+              </CardBody>
+            </Card>
+          )}
+
           {summary.ready_to_invest && (
             <Card className="border-primary/40 bg-primary/10">
               <CardBody className="flex items-center gap-3">

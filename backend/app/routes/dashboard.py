@@ -69,6 +69,7 @@ def summary(
     category_summaries: list[schemas.CategorySummary] = []
     budget_total = Decimal("0")
     budget_used = Decimal("0")
+    projected_income = Decimal(budget.projected_income) if budget else Decimal("0")
 
     if budget:
         spent_by_cat = dict(
@@ -110,6 +111,8 @@ def summary(
         total_income=total_income,
         total_expense=total_expense,
         balance=balance,
+        projected_income=projected_income,
+        projected_vs_actual=total_income - projected_income,
         budget_total=budget_total,
         budget_used=budget_used,
         categories=category_summaries,
