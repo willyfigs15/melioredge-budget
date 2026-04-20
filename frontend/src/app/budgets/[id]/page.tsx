@@ -33,8 +33,8 @@ export default function BudgetDetailPage({ params }: { params: { id: string } })
 
   const seedStarter = async () => {
     if (!budget) return;
-    for (const [i, c] of STARTER_CATEGORIES.entries()) {
-      await api.post(`/api/budgets/${budget.id}/categories`, { ...c, sort_order: i });
+    for (let i = 0; i < STARTER_CATEGORIES.length; i++) {
+      await api.post(`/api/budgets/${budget.id}/categories`, { ...STARTER_CATEGORIES[i], sort_order: i });
     }
     toast.success("Starter categories added");
     load();
