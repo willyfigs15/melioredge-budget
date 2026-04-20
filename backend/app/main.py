@@ -6,7 +6,7 @@ from slowapi.middleware import SlowAPIMiddleware
 from app.config import settings
 from app.limiter import limiter
 from app.routes import auth as auth_routes
-from app.routes import budgets, categories, transactions, imports, dashboard
+from app.routes import budgets, categories, transactions, imports, dashboard, recurring
 
 
 app = FastAPI(title="MeliorEdge Budget API", version="0.1.0")
@@ -40,3 +40,4 @@ app.include_router(categories.router)
 app.include_router(transactions.router)
 app.include_router(imports.router)
 app.include_router(dashboard.router)
+app.include_router(recurring.router)

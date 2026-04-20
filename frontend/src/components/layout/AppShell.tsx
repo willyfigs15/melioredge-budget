@@ -1,9 +1,11 @@
 "use client";
 
 import { Suspense } from "react";
+import { Toaster } from "sonner";
 import { useAuth } from "@/components/AuthProvider";
 import { BottomNav } from "./BottomNav";
-import { TopBar } from "./TopBar";
+import { TopBar, DesktopHeader } from "./TopBar";
+import { SideNav } from "./SideNav";
 
 function Shell({ children }: { children: React.ReactNode }) {
   const { isReady } = useAuth();
@@ -18,12 +20,23 @@ function Shell({ children }: { children: React.ReactNode }) {
     );
   }
   return (
-    <div className="min-h-screen flex flex-col">
-      <TopBar />
-      <main className="flex-1 pb-24 md:pb-8 px-4 md:px-8 max-w-5xl w-full mx-auto">
-        {children}
-      </main>
-      <BottomNav />
+    <div className="min-h-screen flex">
+      <SideNav />
+      <div className="flex-1 flex flex-col min-w-0">
+        <TopBar />
+        <DesktopHeader />
+        <main className="flex-1 pb-24 md:pb-8 px-4 md:px-8 w-full max-w-7xl mx-auto">
+          {children}
+        </main>
+        <BottomNav />
+      </div>
+      <Toaster
+        position="top-right"
+        theme="dark"
+        toastOptions={{
+          style: { background: "hsl(217.2 32.6% 10%)", border: "1px solid hsl(217.2 32.6% 17.5%)", color: "hsl(210 40% 98%)" },
+        }}
+      />
     </div>
   );
 }

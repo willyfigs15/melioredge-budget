@@ -48,6 +48,19 @@ class BudgetIn(BaseModel):
     name: str = ""
 
 
+class BudgetPatch(BaseModel):
+    name: Optional[str] = None
+    year: Optional[int] = Field(default=None, ge=1970, le=2100)
+    month: Optional[int] = Field(default=None, ge=1, le=12)
+
+
+class BudgetDuplicateRequest(BaseModel):
+    source_budget_id: int
+    year: int = Field(ge=1970, le=2100)
+    month: int = Field(ge=1, le=12)
+    name: str = ""
+
+
 class BudgetOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: int
@@ -150,3 +163,43 @@ class DashboardSummary(BaseModel):
     categories: list[CategorySummary]
     health_score: int                              # 0–100 (v1: simple savings-rate heuristic)
     ready_to_invest: bool
+
+
+# ─── Recurring ─────────────────────────────────────────────────────
+
+class RecurringIn(BaseModel):
+    day_of_month: int = Field(ge=1, le=31)
+    amount: Decimal = Field(gt=0)
+    description: str = ""
+    type: Literal["income", "expense"]
+    category_id: Optional[int] = None
+    active: bool = True
+    note: str = ""
+
+
+class RecurringPatch(BaseModel):
+    day_of_month: Optional[int] = Field(default=None, ge=1, le=31)
+    amount: Optional[Decimal] = Field(default=None, gt=0)
+    description: Optional[str] = None
+    type: Optional[Literal["income", "expense"]] = None
+    category_id: Optional[int] = None
+    active: Optional[bool] = None
+    note: Optional[str] = None
+
+
+class RecurringOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    day_of_month: int
+    amount: Decimal
+    description: str
+    type: str
+    category_id: Optional[int]
+    active: bool
+    note: str
+    created_at: datetime
+
+
+class RecurringApplyResult(BaseModel):
+    inserted: int
+    skipped: int

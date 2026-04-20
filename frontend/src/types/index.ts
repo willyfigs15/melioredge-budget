@@ -67,3 +67,15 @@ export type ImportRow = {
   error: string;
   created_at: string;
 };
+
+export type Recurring = {
+  id: number;
+  day_of_month: number;
+  amount: string;
+  description: string;
+  type: TxnType;
+  category_id: number | null;
+  active: boolean;
+  note: string;
+  created_at: string;
+};

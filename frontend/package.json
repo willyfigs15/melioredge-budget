@@ -16,7 +16,8 @@
     "clsx": "^2.1.0",
     "tailwind-merge": "^2.2.0",
     "lucide-react": "^0.441.0",
-    "recharts": "^2.12.7"
+    "recharts": "^2.12.7",
+    "sonner": "^1.5.0"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
